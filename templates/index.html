@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anomaly Watch — Time-Series Anomaly Detection</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="site-header">
+  <h1>Anomaly Watch</h1>
+  <p class="subtitle">Rolling z-score anomaly detection for time-series data</p>
+</header>
+
+<main>
+  <section class="panel">
+    <form method="post" action="/">
+      <div class="form-row">
+        <label>Dataset
+          <select name="dataset">
+            {% for key, label in datasets.items() %}
+            <option value="{{ key }}" {% if key == dataset %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Rolling window (points)
+          <input type="number" name="window" value="{{ window }}" min="2" max="200">
+        </label>
+        <label>Z-score threshold
+          <input type="number" name="threshold" value="{{ threshold }}" min="0.5" max="10" step="0.5">
+        </label>
+      </div>
+      <label class="paste-label">Or paste your own CSV (timestamp,value — overrides the dataset above)
+        <textarea name="pasted_csv" rows="4" placeholder="2026-01-01,1200&#10;2026-01-02,1180">{{ pasted_csv }}</textarea>
+      </label>
+      <button type="submit">Analyze</button>
+    </form>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  </section>
+
+  <section class="stats">
+    <div class="card"><span class="stat-value">{{ stats.points }}</span><span class="stat-label">Points analyzed</span></div>
+    <div class="card"><span class="stat-value">{{ stats.anomalies }}</span><span class="stat-label">Anomalies found</span></div>
+    <div class="card"><span class="stat-value">{{ "%.2f"|format(stats.largest_deviation) }}</span><span class="stat-label">Largest deviation</span></div>
+    <div class="card"><span class="stat-value">{{ source_label }}</span><span class="stat-label">Dataset</span></div>
+  </section>
+
+  <section class="panel">
+    <h2>Chart <span class="legend"><span class="swatch value"></span> value <span class="swatch mean"></span> rolling mean <span class="swatch anomaly"></span> anomaly</span></h2>
+    {{ chart|safe }}
+  </section>
+
+  <section class="panel">
+    <h2>Anomalies ({{ anomalies|length }})</h2>
+    {% if anomalies %}
+    <table>
+      <thead><tr><th>Timestamp</th><th>Value</th><th>Rolling mean</th><th>Deviation</th><th>Z-score</th><th>Direction</th><th>Severity</th></tr></thead>
+      <tbody>
+        {% for a in anomalies %}
+        <tr class="anomaly-row">
+          <td>{{ a.timestamp }}</td>
+          <td>{{ a.value }}</td>
+          <td>{{ a.mean }}</td>
+          <td>{{ a.deviation }}</td>
+          <td>{{ a.z if a.z is not none else "n/a" }}</td>
+          <td>{{ a.direction }}</td>
+          <td><span class="severity {{ a.severity }}">{{ a.severity }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No anomalies found at this threshold. Try lowering the threshold or the window.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <details>
+      <summary>All points ({{ rows|length }})</summary>
+      <table>
+        <thead><tr><th>Timestamp</th><th>Value</th><th>Rolling mean</th><th>Z-score</th><th>Flag</th></tr></thead>
+        <tbody>
+          {% for r in rows %}
+          <tr {% if r.is_anomaly %}class="anomaly-row"{% endif %}>
+            <td>{{ r.timestamp }}</td>
+            <td>{{ r.value }}</td>
+            <td>{{ r.mean if r.mean is not none else "—" }}</td>
+            <td>{{ r.z if r.z is not none else "—" }}</td>
+            <td>{{ "anomaly" if r.is_anomaly else "" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+
+  <section class="panel how-it-works">
+    <h2>How it works</h2>
+    <p>For each point, the baseline is the mean and standard deviation of the
+    <em>previous</em> window points only. A point is flagged when it sits at
+    least the threshold number of standard deviations from that baseline.
+    Using previous points only means no lookahead: the detector never peeks
+    at the future, so it behaves the same on live data as on history.</p>
+    <p>API: <code>POST /api/analyze</code> with JSON
+    <code>{"values": [...], "window": 20, "threshold": 3.0}</code>.</p>
+  </section>
+</main>
+</body>
+</html>
