@@ -51,3 +51,16 @@ def test_api_get_documents_usage(client):
     response = client.get("/api/analyze")
     assert response.status_code == 200
     assert "usage" in response.get_json()
+
+
+def test_dashboard_rejects_unknown_dataset_name(client):
+    # A crafted dataset name must not reach the filesystem: it falls back
+    # to the default sample instead of building a path from user input.
+    response = client.post("/", data={
+        "dataset": "../../../etc/passwd", "window": "20", "threshold": "3.0",
+        "pasted_csv": "",
+    })
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Unknown dataset" in html
+    assert "Website traffic" in html

@@ -112,6 +112,12 @@ def dashboard():
 
         pasted = request.form.get("pasted_csv", "").strip()
         dataset = request.form.get("dataset", DEFAULT_DATASET)
+        if not pasted and dataset not in SAMPLE_DATASETS:
+            # Never build a file path from an unvalidated form value:
+            # load_sample joins it onto the samples dir, so a crafted
+            # name like "../../secrets" would read outside it.
+            error = f"Unknown dataset: {dataset}"
+            dataset = DEFAULT_DATASET
         try:
             if pasted:
                 timestamps, values = parse_pasted_csv(pasted)
