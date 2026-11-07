@@ -25,9 +25,16 @@ def load_sample(name):
 
 def parse_pasted_csv(text):
     """Parse user-pasted CSV text. Accepts timestamp,value rows, with or
-    without a header row. Returns (timestamps, values)."""
+    without a header row. Returns (timestamps, values).
+
+    Only the first row is treated as a possible header: a non-numeric
+    value anywhere else is a typo in the data, and failing loudly beats
+    silently dropping the row and analyzing fewer points than the user
+    pasted.
+    """
     timestamps, values = [], []
-    for line in text.strip().splitlines():
+    seen_row = False
+    for lineno, line in enumerate(text.strip().splitlines(), start=1):
         line = line.strip()
         if not line:
             continue
@@ -37,8 +44,12 @@ def parse_pasted_csv(text):
         try:
             value = float(parts[1])
         except ValueError:
-            # Assume a header row and skip it.
-            continue
+            if not seen_row:
+                # First row is a header: skip it.
+                seen_row = True
+                continue
+            raise ValueError(f"line {lineno}: value is not a number: {parts[1]!r}")
+        seen_row = True
         timestamps.append(parts[0])
         values.append(value)
     if len(values) < 2:

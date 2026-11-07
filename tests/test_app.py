@@ -64,3 +64,16 @@ def test_dashboard_rejects_unknown_dataset_name(client):
     html = response.get_data(as_text=True)
     assert "Unknown dataset" in html
     assert "Website traffic" in html
+
+
+def test_dashboard_reports_bad_value_in_pasted_csv(client):
+    # A non-numeric value mid-file is a typo, not a header: the dashboard
+    # reports it instead of silently analyzing fewer points.
+    response = client.post("/", data={
+        "dataset": "website-traffic", "window": "20", "threshold": "3.0",
+        "pasted_csv": "2026-01-01,100\n2026-01-02,101\n2026-01-03,abc\n",
+    })
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Could not load data" in html
+    assert "not a number" in html
