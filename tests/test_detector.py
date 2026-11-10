@@ -33,6 +33,14 @@ def test_std_zero_flags_only_different_value():
     assert not any(r["is_anomaly"] for r in results)
 
 
+def test_window_of_one_is_rejected():
+    # A window of 1 can never establish a baseline, so it used to return
+    # zero anomalies with no complaint. Reject it instead.
+    import pytest
+    with pytest.raises(ValueError, match="window must be at least 2"):
+        detect([10, 11, 10, 11, 10], window=1, threshold=3.0)
+
+
 def test_window_larger_than_series_handled_gracefully():
     # Window bigger than the series: uses whatever history exists, no crash.
     results = detect([10, 11, 10, 11], window=50, threshold=3.0)

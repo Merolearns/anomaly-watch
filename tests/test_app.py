@@ -40,6 +40,17 @@ def test_api_returns_anomalies(client):
     assert body["points"][-1]["is_anomaly"]
 
 
+def test_api_rejects_window_of_one(client):
+    # window=1 can never flag anything; the API surfaces it as a 400
+    # instead of returning a clean-looking empty result
+    response = client.post("/api/analyze", json={
+        "values": [100, 101, 99, 100, 102, 100, 101, 99, 100, 101, 500],
+        "window": 1, "threshold": 3.0,
+    })
+    assert response.status_code == 400
+    assert "window" in response.get_json()["error"]
+
+
 def test_api_rejects_bad_input(client):
     response = client.post("/api/analyze", json={"values": "not a list"})
     assert response.status_code == 400

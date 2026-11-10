@@ -46,8 +46,11 @@ def detect(values, window=20, threshold=3.0):
     Points with no history yet (fewer than `window` predecessors, or an
     empty baseline) get mean/std/z of None and are never flagged.
     """
-    if window < 1:
-        raise ValueError("window must be at least 1")
+    if window < 2:
+        # A single predecessor has no spread, so a window of 1 can never
+        # flag anything — it just silently returns zero anomalies. Fail
+        # loudly instead of letting a caller wonder why nothing flags.
+        raise ValueError("window must be at least 2")
     if threshold <= 0:
         raise ValueError("threshold must be positive")
 
