@@ -37,7 +37,7 @@ def detect(values, window=20, threshold=3.0):
     """Flag anomalies in a sequence of numbers.
 
     Args:
-        values: list of numbers, in time order.
+        values: iterable of numbers, in time order.
         window: how many previous points form the baseline.
         threshold: minimum z-score (in standard deviations) to flag.
 
@@ -53,6 +53,10 @@ def detect(values, window=20, threshold=3.0):
         raise ValueError("window must be at least 2")
     if threshold <= 0:
         raise ValueError("threshold must be positive")
+
+    # The loop slices history by index, so materialize any iterable
+    # (a generator used to raise TypeError here, not subscriptable).
+    values = list(values)
 
     results = []
     for i, value in enumerate(values):
