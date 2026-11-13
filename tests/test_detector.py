@@ -61,3 +61,15 @@ def test_no_lookahead():
     before = detect([100, 101, 99, 100, 102, 100], window=5, threshold=3.0)
     after = detect([100, 101, 99, 100, 102, 100, 500], window=5, threshold=3.0)
     assert [r["is_anomaly"] for r in before] == [r["is_anomaly"] for r in after[:6]]
+
+
+def test_accepts_any_iterable():
+    # detect slices history by index, so a generator used to raise
+    # TypeError ("'generator' object is not subscriptable").
+    values = [100, 101, 99, 100, 102, 100, 101, 99, 100, 101, 500]
+    from_list = detect(values, window=5, threshold=3.0)
+    from_generator = detect((v for v in values), window=5, threshold=3.0)
+    assert from_generator == from_list
+    assert from_generator[-1]["is_anomaly"]
+    # a tuple works too
+    assert detect(tuple(values), window=5, threshold=3.0) == from_list
