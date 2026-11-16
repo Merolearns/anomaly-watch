@@ -51,6 +51,17 @@ def test_api_rejects_window_of_one(client):
     assert "window" in response.get_json()["error"]
 
 
+def test_api_rejects_non_finite_value(client):
+    # NaN/inf in the JSON body must be a 400, not a clean-looking run
+    # that silently flags nothing.
+    response = client.post("/api/analyze", json={
+        "values": [100, 101, 99, 100, 102, float("nan"), 100, 101, 500],
+        "window": 5, "threshold": 3.0,
+    })
+    assert response.status_code == 400
+    assert "finite" in response.get_json()["error"]
+
+
 def test_api_rejects_bad_input(client):
     response = client.post("/api/analyze", json={"values": "not a list"})
     assert response.status_code == 400

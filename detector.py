@@ -58,6 +58,13 @@ def detect(values, window=20, threshold=3.0):
     # (a generator used to raise TypeError here, not subscriptable).
     values = list(values)
 
+    if not all(math.isfinite(v) for v in values):
+        # A NaN or infinity poisons every baseline after it: the rolling
+        # mean/std go NaN and nothing ever flags, with no error to show
+        # for it. Reject it up front instead of returning a clean-looking
+        # result that quietly missed every anomaly.
+        raise ValueError("values must be finite numbers")
+
     results = []
     for i, value in enumerate(values):
         history = values[max(0, i - window):i]

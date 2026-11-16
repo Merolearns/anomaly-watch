@@ -39,6 +39,18 @@ def test_non_numeric_value_with_header_raises():
         )
 
 
+def test_non_finite_value_raises():
+    # float() accepts "nan"/"inf", but either one poisons the detector
+    # (rolling mean goes NaN, nothing ever flags), so reject it here
+    # with the offending line called out.
+    with pytest.raises(ValueError, match="line 3.*not a finite number"):
+        parse_pasted_csv(
+            "2026-01-01,100\n2026-01-02,101\n2026-01-03,nan\n2026-01-04,103\n"
+        )
+    with pytest.raises(ValueError, match="line 2.*not a finite number"):
+        parse_pasted_csv("2026-01-01,100\n2026-01-02,inf\n2026-01-03,102\n")
+
+
 def test_wrong_column_count_raises():
     with pytest.raises(ValueError, match="exactly two columns"):
         parse_pasted_csv("2026-01-01,100,extra\n2026-01-02,101\n")

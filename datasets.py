@@ -1,6 +1,7 @@
 """Load the bundled sample datasets (CSV files with timestamp,value)."""
 
 import csv
+import math
 import os
 
 SAMPLES_DIR = os.path.join(os.path.dirname(__file__), "samples")
@@ -49,6 +50,13 @@ def parse_pasted_csv(text):
                 seen_row = True
                 continue
             raise ValueError(f"line {lineno}: value is not a number: {parts[1]!r}")
+        if not math.isfinite(value):
+            # float() accepts "nan" and "inf", but either one poisons the
+            # detector: the rolling mean goes NaN and nothing ever flags,
+            # with no error to show for it. Fail on the offending line.
+            raise ValueError(
+                f"line {lineno}: value is not a finite number: {parts[1]!r}"
+            )
         seen_row = True
         timestamps.append(parts[0])
         values.append(value)

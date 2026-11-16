@@ -1,6 +1,8 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import pytest
+
 from detector import detect
 
 
@@ -31,6 +33,19 @@ def test_std_zero_flags_only_different_value():
     # Flat baseline continuing: not flagged.
     results = detect([5, 5, 5, 5, 5], window=4, threshold=3.0)
     assert not any(r["is_anomaly"] for r in results)
+
+
+def test_non_finite_value_is_rejected():
+    # A NaN in the input poisons every baseline after it (mean/std go
+    # NaN, so nothing ever flags) while the run still looks clean.
+    # Reject it instead of returning a result that quietly missed
+    # every anomaly.
+    with pytest.raises(ValueError, match="finite"):
+        detect([100, 101, 99, 100, 102, float("nan"), 100, 500],
+               window=5, threshold=3.0)
+    with pytest.raises(ValueError, match="finite"):
+        detect([100, 101, 99, 100, 102, float("inf"), 100, 500],
+               window=5, threshold=3.0)
 
 
 def test_window_of_one_is_rejected():

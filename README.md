@@ -20,6 +20,9 @@ never peeks at the future, so it behaves the same on live data as on
 history. Edge cases: a flat baseline (std = 0) flags only a value that
 differs from the baseline, and points with fewer than two predecessors
 are never flagged, since one point cannot establish a baseline.
+Non-finite values (NaN, infinity) are rejected with an error instead of
+silently poisoning the run — a NaN in the input would make the rolling
+mean NaN and nothing would ever flag.
 
 Severity is relative to the threshold: `high` at threshold + 2 or above,
 `medium` at threshold + 1 or above, otherwise `low`.
