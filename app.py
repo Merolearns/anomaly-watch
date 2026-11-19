@@ -169,6 +169,10 @@ def api_analyze():
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or "values" not in data:
         return jsonify({"error": "JSON body must contain a 'values' list"}), 400
+    if not isinstance(data["values"], list):
+        # a string is iterable, so without this "500" would be analyzed
+        # as the three points [5.0, 0.0, 0.0] and return a confident 200
+        return jsonify({"error": "'values' must be a list of numbers"}), 400
     try:
         values = [float(v) for v in data["values"]]
         window = int(data.get("window", DEFAULT_WINDOW))

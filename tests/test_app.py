@@ -67,6 +67,13 @@ def test_api_rejects_bad_input(client):
     assert response.status_code == 400
     response = client.post("/api/analyze", json={})
     assert response.status_code == 400
+    # a digit string is iterable, so "500" used to be analyzed as the
+    # three points [5.0, 0.0, 0.0] and return 200 instead of 400
+    response = client.post("/api/analyze", json={"values": "500"})
+    assert response.status_code == 400
+    assert "list" in response.get_json()["error"]
+    response = client.post("/api/analyze", json={"values": 123})
+    assert response.status_code == 400
 
 
 def test_api_get_documents_usage(client):
