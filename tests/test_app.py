@@ -76,6 +76,31 @@ def test_api_rejects_bad_input(client):
     assert response.status_code == 400
 
 
+def test_api_rejects_non_number_elements(client):
+    # Numeric strings inside the list used to be silently coerced
+    # ("500" -> 500.0) and booleans to 1.0/0.0; both must be a 400.
+    # A null used to 400 too, but with a raw Python error message.
+    response = client.post("/api/analyze", json={
+        "values": ["100", "101", "99", "100", "102", "100", "101", "99",
+                   "100", "101", "500"],
+        "window": 5, "threshold": 3.0,
+    })
+    assert response.status_code == 400
+    assert "list of numbers" in response.get_json()["error"]
+    response = client.post("/api/analyze", json={
+        "values": [100, 101, True, 100, 102, 100, 101, 99, 100, 101, 500],
+        "window": 5, "threshold": 3.0,
+    })
+    assert response.status_code == 400
+    assert "list of numbers" in response.get_json()["error"]
+    response = client.post("/api/analyze", json={
+        "values": [100, 101, None, 100, 102, 100, 101, 99, 100, 101, 500],
+        "window": 5, "threshold": 3.0,
+    })
+    assert response.status_code == 400
+    assert "list of numbers" in response.get_json()["error"]
+
+
 def test_api_get_documents_usage(client):
     response = client.get("/api/analyze")
     assert response.status_code == 200

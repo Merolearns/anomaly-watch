@@ -173,6 +173,13 @@ def api_analyze():
         # a string is iterable, so without this "500" would be analyzed
         # as the three points [5.0, 0.0, 0.0] and return a confident 200
         return jsonify({"error": "'values' must be a list of numbers"}), 400
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool)
+               for v in data["values"]):
+        # float() coerces "500" to 500.0 and True to 1.0, so without this
+        # a list of strings or booleans would be analyzed as numbers
+        # instead of being rejected; a null used to 400 with a raw
+        # Python error message instead of this plain-English one
+        return jsonify({"error": "'values' must be a list of numbers"}), 400
     try:
         values = [float(v) for v in data["values"]]
         window = int(data.get("window", DEFAULT_WINDOW))
