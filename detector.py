@@ -53,6 +53,12 @@ def detect(values, window=20, threshold=3.0):
         raise ValueError("window must be at least 2")
     if threshold <= 0:
         raise ValueError("threshold must be positive")
+    if not math.isfinite(threshold):
+        # NaN/inf slip past `threshold <= 0` (both comparisons are
+        # False), then `abs(z) >= threshold` is always False and
+        # nothing ever flags while the run looks clean. Reject it
+        # up front, like non-finite values.
+        raise ValueError("threshold must be a finite number")
 
     # The loop slices history by index, so materialize any iterable
     # (a generator used to raise TypeError here, not subscriptable).

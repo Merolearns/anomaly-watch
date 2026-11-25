@@ -6,6 +6,7 @@ in memory; nothing is stored.
 """
 
 from flask import Flask, jsonify, render_template, request
+import math
 
 from datasets import SAMPLE_DATASETS, load_sample, parse_pasted_csv
 from detector import detect, summarize
@@ -106,6 +107,11 @@ def dashboard():
                 raise ValueError("window must be at least 2")
             if threshold <= 0:
                 raise ValueError("threshold must be positive")
+            if not math.isfinite(threshold):
+                # detect() rejects it too, but it is called outside
+                # this try — without this the page would 500 instead
+                # of showing the plain-English error below
+                raise ValueError("threshold must be a finite number")
         except ValueError as exc:
             error = f"Invalid control value: {exc}"
             window, threshold = DEFAULT_WINDOW, DEFAULT_THRESHOLD
@@ -185,7 +191,9 @@ def api_analyze():
         window = int(data.get("window", DEFAULT_WINDOW))
         threshold = float(data.get("threshold", DEFAULT_THRESHOLD))
         results = detect(values, window, threshold)
-    except (ValueError, TypeError) as exc:
+    except (ValueError, TypeError, OverflowError) as exc:
+        # OverflowError: int(float("inf")) for a window of Infinity —
+        # without it the API 500s instead of returning a 400
         return jsonify({"error": f"invalid input: {exc}"}), 400
     return jsonify({
         "points": results,

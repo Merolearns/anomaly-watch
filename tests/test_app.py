@@ -120,6 +120,39 @@ def test_dashboard_rejects_unknown_dataset_name(client):
     assert "Website traffic" in html
 
 
+def test_api_rejects_non_finite_threshold(client):
+    # NaN/inf thresholds used to return a confident 200 with 0
+    # anomalies — abs(z) >= NaN is always False, so nothing flags
+    for bad in (float("nan"), float("inf")):
+        response = client.post("/api/analyze", json={
+            "values": [100, 101, 99, 100, 102, 100, 101, 99, 100, 101, 500],
+            "window": 5, "threshold": bad,
+        })
+        assert response.status_code == 400
+        assert "finite" in response.get_json()["error"]
+
+
+def test_api_rejects_infinite_window(client):
+    # int(float("inf")) raises OverflowError, which used to escape the
+    # ValueError/TypeError handler and 500 the API
+    response = client.post("/api/analyze", json={
+        "values": [100, 101, 99, 100, 102, 100, 101, 99, 100, 101, 500],
+        "window": float("inf"), "threshold": 3.0,
+    })
+    assert response.status_code == 400
+
+
+def test_dashboard_rejects_nan_threshold(client):
+    # a NaN threshold typed into the dashboard form must show the
+    # plain-English error, not a 500 or a clean-looking chart
+    response = client.post("/", data={
+        "dataset": "website-traffic", "window": "20", "threshold": "nan",
+        "pasted_csv": "",
+    })
+    assert response.status_code == 200
+    assert "Invalid control value" in response.get_data(as_text=True)
+
+
 def test_dashboard_reports_bad_value_in_pasted_csv(client):
     # A non-numeric value mid-file is a typo, not a header: the dashboard
     # reports it instead of silently analyzing fewer points.

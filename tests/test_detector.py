@@ -48,6 +48,17 @@ def test_non_finite_value_is_rejected():
                window=5, threshold=3.0)
 
 
+def test_non_finite_threshold_is_rejected():
+    # NaN/inf slip past `threshold <= 0` (both comparisons are False),
+    # then `abs(z) >= threshold` is always False and nothing ever flags
+    # while the run looks clean. Reject it instead.
+    values = [100, 101, 99, 100, 102, 100, 101, 99, 100, 101, 500]
+    with pytest.raises(ValueError, match="finite"):
+        detect(values, window=5, threshold=float("nan"))
+    with pytest.raises(ValueError, match="finite"):
+        detect(values, window=5, threshold=float("inf"))
+
+
 def test_window_of_one_is_rejected():
     # A window of 1 can never establish a baseline, so it used to return
     # zero anomalies with no complaint. Reject it instead.
