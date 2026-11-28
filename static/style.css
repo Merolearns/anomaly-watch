@@ -38,10 +38,11 @@ label { font-size: 0.9rem; font-weight: 600; }
 label input, label select {
   display: block;
   margin-top: 0.3rem;
-  padding: 0.45rem 0.6rem;
+  padding: 0.65rem 0.7rem;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 0.95rem;
+  min-height: 44px;
 }
 
 .paste-label { display: block; margin-bottom: 1rem; }
@@ -61,7 +62,8 @@ button {
   color: #fff;
   border: none;
   border-radius: 6px;
-  padding: 0.6rem 1.4rem;
+  padding: 0.8rem 2rem;
+  min-height: 44px;
   font-size: 1rem;
   cursor: pointer;
 }
